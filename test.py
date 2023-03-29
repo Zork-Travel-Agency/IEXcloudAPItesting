@@ -9,7 +9,6 @@ from api_key import IEX_CLOUD_API_TOKEN
 stocks = pd.read_csv("D:\\Sandbox\\algorithmic-trading-python-master\\starter_files\\stonks.csv", on_bad_lines='skip')
 print(stocks.head())
 print(stocks.columns.tolist())
-api_url = f'https://api.iex.cloud/v1/data/core/quote/{symbol}?token={IEX_CLOUD_API_TOKEN}'
 my_columns = ['Ticker', 'Stock Price', 'Market Capitalization', 'Number of Shares to Buy']
 final_dataframe = pd.DataFrame([[0, 0, 0, 0]], columns = my_columns)
 final_dataframe = pd.DataFrame(columns = my_columns)
@@ -44,14 +43,16 @@ for symbol_string in symbol_strings:
     batch_api_call_url = f'https://api.iex.cloud/v1/data/core/quote/{symbol_string}?token={IEX_CLOUD_API_TOKEN}'
     data = requests.get(batch_api_call_url).json()
     print(data)
+    counter = 0
     for stock in symbol_string.split(','):
         final_dataframe = final_dataframe.append(
                                         pd.Series([stock, 
-                                                   data[0]['symbol']['quote']['latestPrice'], 
-                                                   data[0]['symbol']['quote']['marketCap'], 
+                                                   data[counter]['latestPrice'], 
+                                                   data[counter]['marketCap'], 
                                                    'N/A'], 
                                                   index = my_columns), 
                                         ignore_index = True)
+        counter += 1
         
 print(final_dataframe)
         
@@ -65,7 +66,7 @@ except ValueError:
 
 position_size = float(portfolio_size) / len(final_dataframe.index)
 for i in range(0, len(final_dataframe['Ticker'])-1):
-    final_dataframe.loc[i, 'Number Of Shares to Buy'] = math.floor(position_size / final_dataframe['Price'][i])
+    final_dataframe.loc[i, 'Number Of Shares to Buy'] = math.floor(position_size / final_dataframe['Stock Price'][i])
 print(final_dataframe)
 
 writer = pd.ExcelWriter('recommended_trades.xlsx', engine='xlsxwriter')
@@ -111,4 +112,6 @@ for column in column_formats.keys():
     writer.sheets['Recommended Trades'].set_column(f'{column}:{column}', 20, column_formats[column][1])
     writer.sheets['Recommended Trades'].write(f'{column}1', column_formats[column][0], string_format)
 
-writer.save()
+print(writer)
+
+writer.close()
